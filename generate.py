@@ -1,6 +1,9 @@
 from __future__ import annotations
 from datetime import date
 
+import extloader
+import random
+
 
 VOCALS = ['A', 'E', 'I', 'O', 'U']
 MONTH_DECODE_TABLE = ['A', 'B', 'C', 'D', 'E', 'H', 'L', 'M', 'P', 'R', 'S', 'T']
@@ -48,15 +51,19 @@ CONTROL_CODE_ODD_DECODE_TABLE = {
 }
 
 
-def load_province_decode_table() -> dict[str, str]:
-    return {'PT': 'G713'}
+def load_names() -> list[str]:
+    return extloader.load_names()
 
 
-def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, province: str):
+def load_province_table() -> list[tuple[str, str, str]]:
+    return extloader.load_province_table()
+
+
+def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, province_code: str):
     name = name.upper()
     surname = surname.upper()
     sex = sex.upper()
-    province = province.upper()
+    province_code = province_code.upper()
 
     surname_part = ''
     idx = 0
@@ -87,15 +94,12 @@ def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, pro
     while idx < len(name) and len(name_part) < 3:
         if name[idx] in VOCALS:
             name_part += name[idx]
-        idx += 1
+        idx += 170
     name_part.rjust(3, 'X')
 
     year = str(birth_day.year)[-2:]
     month = MONTH_DECODE_TABLE[birth_day.month - 1]
     day_and_sex = str(birth_day.day + 0 if sex == 'M' else 40).ljust(2, '0')
-
-    province_decode_table = load_province_decode_table()
-    province_code = province_decode_table[province]
 
     fiscal_code = surname_part + name_part + year + month + day_and_sex + province_code
 
@@ -109,6 +113,30 @@ def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, pro
 
 
 def main() -> int:
+    names = load_names()
+    province_table = load_province_table()
+    province_acronym, province_name, province_code = random.choice(province_table)
+
+    min_age = 18
+    max_age = 70
+    today = date.today()
+    min_age_years_ago = today.replace(today.year - min_age, today.month, today.day)
+    max_age_years_ago = today.replace(today.year - max_age, today.month, today.day)
+    days = min_age_years_ago.toordinal() - max_age_years_ago.toordinal()
+
+    name = random.choice(names).upper()
+    surname = random.choice(names).upper()
+    random_birth_day = date.fromordinal(min_age_years_ago.toordinal() - random.randint(1, days))
+    sex = 'F' if name.endswith('A') else 'M'
+
+    print(f'Name: {name}')
+    print(f'Surname: {surname}')
+    print(f'Sex: {sex}')
+    print(f'Birthday: {random_birth_day.strftime("%Y-%m-%d")}')
+    print(f'Birthplace: {province_name} ({province_acronym})')
+
+    print(generate_fiscal_code(name, surname, sex, random_birth_day, province_code))
+
     return 0
 
 
