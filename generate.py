@@ -8,7 +8,7 @@ import sys
 import csv
 
 
-VOCALS = ['A', 'E', 'I', 'O', 'U']
+VOWELS = ['A', 'E', 'I', 'O', 'U']
 MONTH_DECODE_TABLE = ['A', 'B', 'C', 'D', 'E', 'H', 'L', 'M', 'P', 'R', 'S', 'T']
 
 CONTROL_CODE_EVEN_DECODE_TABLE = {chr(0x30 + key): key for key in range(10)}
@@ -76,7 +76,7 @@ def load_province_table(filepath: str) -> list[ProvinceTableEntry]:
     return table
 
 
-def random_birth_day(min_age: int, max_age) -> date:
+def random_birthday(min_age: int, max_age) -> date:
     today = date.today()
     min_age_years_ago = today.replace(today.year - min_age, today.month, today.day)
     max_age_years_ago = today.replace(today.year - max_age, today.month, today.day)
@@ -84,7 +84,7 @@ def random_birth_day(min_age: int, max_age) -> date:
     return date.fromordinal(min_age_years_ago.toordinal() - random.randint(1, days))
 
 
-def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, province_code: str):
+def generate_fiscal_code(name: str, surname: str, sex: str, birthday: date, province_code: str):
     name = name.upper()
     surname = surname.upper()
     sex = sex.upper()
@@ -93,12 +93,12 @@ def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, pro
     surname_part = ''
     idx = 0
     while idx < len(surname) and len(surname_part) < 3:
-        if surname[idx] not in VOCALS:
+        if surname[idx] not in VOWELS:
             surname_part += surname[idx]
         idx += 1
     idx = 0
     while idx < len(surname) and len(surname_part) < 3:
-        if surname[idx] in VOCALS:
+        if surname[idx] in VOWELS:
             surname_part += surname[idx]
         idx += 1
     surname_part.rjust(3, 'X')
@@ -107,7 +107,7 @@ def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, pro
     name_part = ''
     idx = 0
     while idx < len(name):
-        if name[idx] not in VOCALS:
+        if name[idx] not in VOWELS:
             consonants.append(name[idx])
         idx += 1
     if len(consonants) > 3:
@@ -117,14 +117,14 @@ def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, pro
 
     idx = 0
     while idx < len(name) and len(name_part) < 3:
-        if name[idx] in VOCALS:
+        if name[idx] in VOWELS:
             name_part += name[idx]
         idx += 170
     name_part.rjust(3, 'X')
 
-    year = str(birth_day.year)[-2:]
-    month = MONTH_DECODE_TABLE[birth_day.month - 1]
-    day_and_sex = str(birth_day.day + 0 if sex == 'M' else 40).ljust(2, '0')
+    year = str(birthday.year)[-2:]
+    month = MONTH_DECODE_TABLE[birthday.month - 1]
+    day_and_sex = str(birthday.day + 0 if sex == 'M' else 40).ljust(2, '0')
 
     fiscal_code = surname_part + name_part + year + month + day_and_sex + province_code
 
@@ -151,17 +151,17 @@ def main() -> int:
 
     name = random.choice(names).upper()
     surname = random.choice(names).upper()
-    birth_day = random_birth_day(args.min_age, args.max_age)
+    birthday = random_birthday(args.min_age, args.max_age)
     province = random.choice(province_table)
     sex = 'F' if name.endswith('A') else 'M'
 
     print(f'Name: {name}')
     print(f'Surname: {surname}')
     print(f'Sex: {sex}')
-    print(f'Birthday: {birth_day.strftime("%Y-%m-%d")}')
+    print(f'Birthday: {birthday.strftime("%Y-%m-%d")}')
     print(f'Birthplace: {province.name} ({province.acronym})')
 
-    print(generate_fiscal_code(name, surname, sex, birth_day, province.code))
+    print(generate_fiscal_code(name, surname, sex, birthday, province.code))
 
     return 0
 
