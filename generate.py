@@ -1,8 +1,11 @@
 from __future__ import annotations
 from datetime import date
 
-import extloader
+import dataclasses
 import random
+import argparse
+import sys
+import csv
 
 
 VOCALS = ['A', 'E', 'I', 'O', 'U']
@@ -51,12 +54,34 @@ CONTROL_CODE_ODD_DECODE_TABLE = {
 }
 
 
-def load_names() -> list[str]:
-    return extloader.load_names()
+@dataclasses.dataclass
+class ProvinceTableEntry:
+    acronym: str
+    name: str
+    code: str
 
 
-def load_province_table() -> list[tuple[str, str, str]]:
-    return extloader.load_province_table()
+def load_names(filepath: str) -> list[str]:
+    return [name.strip() for name in open(filepath, 'r') if len(name.strip()) > 0]
+
+
+def load_province_table(filepath: str) -> list[ProvinceTableEntry]:
+    table = []
+    with open(filepath, 'r', newline='') as f:
+        for row in csv.reader(f, delimiter=';'):
+            acronym = row[0]
+            name = row[1]
+            code = row[2]
+            table.append(ProvinceTableEntry(acronym=acronym, name=name, code=code))
+    return table
+
+
+def random_birth_day(min_age: int, max_age) -> date:
+    today = date.today()
+    min_age_years_ago = today.replace(today.year - min_age, today.month, today.day)
+    max_age_years_ago = today.replace(today.year - max_age, today.month, today.day)
+    days = min_age_years_ago.toordinal() - max_age_years_ago.toordinal()
+    return date.fromordinal(min_age_years_ago.toordinal() - random.randint(1, days))
 
 
 def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, province_code: str):
@@ -113,29 +138,30 @@ def generate_fiscal_code(name: str, surname: str, sex: str, birth_day: date, pro
 
 
 def main() -> int:
-    names = load_names()
-    province_table = load_province_table()
-    province_acronym, province_name, province_code = random.choice(province_table)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--province-table', dest='province_filepath', required=True)
+    parser.add_argument('--name-list', dest='name_filepath', required=True)
+    parser.add_argument('--max-age', type=int, default=70)
+    parser.add_argument('--min-age', type=int, default=18)
 
-    min_age = 18
-    max_age = 70
-    today = date.today()
-    min_age_years_ago = today.replace(today.year - min_age, today.month, today.day)
-    max_age_years_ago = today.replace(today.year - max_age, today.month, today.day)
-    days = min_age_years_ago.toordinal() - max_age_years_ago.toordinal()
+    args = parser.parse_args(sys.argv[1:])
+
+    names = load_names(args.name_filepath)
+    province_table = load_province_table(args.province_filepath)
 
     name = random.choice(names).upper()
     surname = random.choice(names).upper()
-    random_birth_day = date.fromordinal(min_age_years_ago.toordinal() - random.randint(1, days))
+    birth_day = random_birth_day(args.min_age, args.max_age)
+    province = random.choice(province_table)
     sex = 'F' if name.endswith('A') else 'M'
 
     print(f'Name: {name}')
     print(f'Surname: {surname}')
     print(f'Sex: {sex}')
-    print(f'Birthday: {random_birth_day.strftime("%Y-%m-%d")}')
-    print(f'Birthplace: {province_name} ({province_acronym})')
+    print(f'Birthday: {birth_day.strftime("%Y-%m-%d")}')
+    print(f'Birthplace: {province.name} ({province.acronym})')
 
-    print(generate_fiscal_code(name, surname, sex, random_birth_day, province_code))
+    print(generate_fiscal_code(name, surname, sex, birth_day, province.code))
 
     return 0
 
