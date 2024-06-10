@@ -124,7 +124,7 @@ def generate_fiscal_code(name: str, surname: str, sex: str, birthday: date, prov
 
     year = str(birthday.year)[-2:]
     month = MONTH_DECODE_TABLE[birthday.month - 1]
-    day_and_sex = str(birthday.day + 0 if sex == 'M' else 40).ljust(2, '0')
+    day_and_sex = str(birthday.day + (0 if sex == 'M' else 40)).ljust(2, '0')
 
     fiscal_code = surname_part + name_part + year + month + day_and_sex + province_code
 
